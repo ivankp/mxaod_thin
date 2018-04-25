@@ -9,78 +9,63 @@
 
 #include <TFile.h>
 #include <TTree.h>
-#include <TTreeReader.h>
-#include <TTreeReaderValue.h>
-// #include <TTreeReaderArray.h>
 
+#include "any_reader.hh"
 #include "timed_counter.hh"
 #include "color.hh"
+#include "string.hh"
 
-using namespace std;
+#define TEST(var) \
+  std::cout << "\033[36m" #var "\033[0m = " << var << std::endl;
+
+using std::cout;
+using std::endl;
+using ivanp::cat;
+
+// namespace ivanp {
+// template <>
+// inline size_t size(const TObjArray& c) { return c.GetSize(); }
+// }
 
 template <typename... T>
 inline void write(const char* name, T&&... x) {
-  stringstream ss;
-  using expander = int[];
-  (void)expander{0, ((void)(ss << forward<T>(x)), 0)...};
-  TNamed(name,ss.str().c_str()).Write();
+  TNamed(name,cat(std::forward<T>(x)...).c_str()).Write();
 }
 
 double get_lumi(const char* name) {
-  static const boost::regex re("^(.*/)?data.*_(\\d+)ipb\\..*\\.root$");
+  static const boost::regex re("^(?:.*/)?data.*_(\\d+)ipb\\..*\\.root$");
   boost::cmatch match;
   if (boost::regex_match(name,name+strlen(name),match,re)) {
-    return stod(match[2]);
-  } else throw runtime_error("lumi regex failed to match");
+    return std::stod(match[1]);
+  } else throw std::runtime_error("lumi regex failed to match");
 }
 
 TTree *tout;
 TTreeReader reader;
 
-struct basic_var {
-  virtual void operator*() = 0;
-  virtual ~basic_var() { }
-};
+boost::regex alias_re("[^.]*Event[^.]*\\.(.+)");
 
-template <typename T>
-struct var_wrap final: basic_var {
-  TTreeReaderValue<T> r;
-  T x;
-  var_wrap(const char* name): r(reader,name) {
-    tout->Branch(name,&x);
-
-    static const char* suff[] = { "HGamEventInfoAuxDyn", "EventInfoAux" };
-    const char* dot = strchr(name,'.');
-    if (!dot) return;
-    int match = 0;
-    string alias;
-    for (unsigned i=0; i<std::extent<decltype(suff)>::value; ++i) {
-      for (const char *a=name, *b=suff[i]; a!=dot && *b!='\0'; ++a, ++b)
-        if (*a != *b) goto next;
-      match = i+1;
-      alias = dot+1;
-      break;
-next: ;
-    }
-
-    if (match) {
-      if (match==1) {
-        const auto _30 = alias.find("_30");
-        if (_30!=string::npos) alias.erase(_30,3);
-      }
-      tout->SetAlias(alias.c_str(),name);
-    }
+std::vector<boost::regex> get_branch_regex(const char* fname) {
+  std::vector<boost::regex> re;
+  std::ifstream f(fname);
+  std::string line;
+  const char *a, *b;
+  while (std::getline(f,line)) {
+    if (line.empty()) continue;
+    a = line.c_str();
+    while (std::isspace(*a)) ++a;
+    if ((*a)=='\0' || (*a)=='#') continue;
+    b = a + line.size() - 1;
+    while (std::isspace(*b)) --b;
+    // auto str = "(?:[^.]*\\.)?"+std::string(a,b+1);
+    // TEST(str)
+    re.emplace_back("(?:[^.]*\\.)?"+std::string(a,b+1));
   }
-  void operator*() { x = *r; }
-};
-
-vector<basic_var*> vars;
-
-template <typename T>
-void var(const char* name) { vars.push_back(new var_wrap<T>(name)); }
+  return re;
+}
 
 int main(int argc, char* argv[]) {
-  if (argc!=3) {
+  if (argc<3) {
     cout << "usage: " << argv[0] << " out.root in.root" << endl;
     return 1;
   }
@@ -89,44 +74,9 @@ int main(int argc, char* argv[]) {
   if (fout.IsZombie()) return 1;
   tout = new TTree("CollectionTree","");
 
-  var<UInt_t>("EventInfoAux.runNumber");
-  var<ULong64_t>("EventInfoAux.eventNumber");
-  var<Char_t>("HGamEventInfoAuxDyn.isPassed");
-
-#define VAR(NAME) var<Float_t>("HGamEventInfoAuxDyn." #NAME);
-
-  VAR(m_yy) VAR(pT_yy) VAR(yAbs_yy) VAR(cosTS_yy) VAR(pTt_yy)
-  VAR(Dy_y_y)
-
-  var<Int_t>("HGamEventInfoAuxDyn.N_j_30");
-  var<Int_t>("HGamEventInfoAuxDyn.N_j_50");
-
-  VAR(HT_30)
-  VAR(pT_j1_30)      VAR(pT_j2_30)      VAR(pT_j3_30)
-  VAR(yAbs_j1_30)    VAR(yAbs_j2_30)
-  VAR(Dphi_j_j_30)   VAR(Dphi_j_j_30_signed)
-  VAR(Dy_j_j_30)     VAR(m_jj_30)
-  VAR(sumTau_yyj_30) VAR(maxTau_yyj_30)
-  VAR(pT_yyjj_30)    VAR(Dy_yy_jj_30) VAR(Dphi_yy_jj_30)
-
-  var<Int_t>("HGamEventInfoAuxDyn.N_lep_15");
-  var<Int_t>("HGamEventInfoAuxDyn.catCoup_Moriond2017BDT");
-  var<Char_t>("HGamEventInfoAuxDyn.catXS_VBF");
-  var<Char_t>("HGamEventInfoAuxDyn.catXS_ttH");
-
-  VAR(met_TST)
-
-#define VEC(NAME) \
-  var<vector<float>>(#NAME ".pt"); \
-  var<vector<float>>(#NAME ".eta"); \
-  var<vector<float>>(#NAME ".phi"); \
-  var<vector<float>>(#NAME ".m");
-
-  VEC(HGamPhotonsAuxDyn)
-  VEC(HGamAntiKt4EMTopoJetsAuxDyn)
-  VEC(HGamAntiKt4EMPFlowJetsAuxDyn)
-
   double lumi = 0; // ipb
+  std::string fnames;
+  std::vector<any_reader> vars; // can't move
 
   for (int i=2; i<argc; ++i) {
     cout << iftty{"\033[35m"} << argv[i] << iftty{"\033[0m"} << endl;
@@ -135,9 +85,42 @@ int main(int argc, char* argv[]) {
     TFile file(argv[i]);
     reader.SetTree("CollectionTree",&file);
 
+    if (i==2) {
+      std::vector<const TLeaf*> leaves;
+      for (const auto& re : get_branch_regex("branches.re")) {
+        for (const auto* obj : *reader.GetTree()->GetListOfLeaves()) {
+          const TLeaf* leaf = static_cast<const TLeaf*>(obj);
+          const char* name = leaf->GetName();
+          if (!boost::regex_match(name,re)) continue;
+          leaves.push_back(leaf);
+        }
+      }
+      vars.reserve(leaves.size()); // can't move
+      for (const auto* leaf : leaves) {
+        const char* name = leaf->GetName();
+        vars.emplace_back(reader,leaf); // can't move
+        const auto& var = vars.back();
+        var.make_branch(tout);
+        cout << var.get_type() << ' ' << var.name();
+        // add alias
+        boost::cmatch match;
+        if (boost::regex_match(name,name+std::strlen(name),match,alias_re)) {
+          std::string alias = match[1];
+          if (!alias.empty()) {
+            const auto _30 = alias.find("_30");
+            if (_30!=std::string::npos) alias.erase(_30,3);
+            tout->SetAlias(alias.c_str(),name);
+            cout << " -> " << alias;
+          }
+        }
+        cout << endl;
+      }
+    } else fnames += '\n';
+    fnames += argv[i];
+
     using tc = ivanp::timed_counter<Long64_t>;
     for (tc ent(reader.GetEntries(true)); reader.Next(); ++ent) {
-      for (auto* v : vars) **v;
+      for (auto& var : vars) *var;
       tout->Fill();
     }
   }
@@ -146,9 +129,8 @@ int main(int argc, char* argv[]) {
   write("Lumi",lumi," ipb");
   cout << iftty{"\033[36m"} << "Total lumi" << iftty{"\033[0m"}
        << ": " << lumi << " ipb" << endl;
+  write("Files",fnames);
 
   fout.Write(0,TObject::kOverwrite);
-
-  for (auto* v : vars) delete v;
 }
 
