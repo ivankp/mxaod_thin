@@ -9,6 +9,7 @@
 
 #include <TFile.h>
 #include <TTree.h>
+#include <TKey.h>
 
 #include "any_reader.hh"
 #include "timed_counter.hh"
@@ -37,13 +38,13 @@ double get_lumi(const char* name) {
   boost::cmatch match;
   if (boost::regex_match(name,name+strlen(name),match,re)) {
     return std::stod(match[1]);
-  } else throw std::runtime_error("lumi regex failed to match");
+  } return 0;
 }
 
 TTree *tout;
 TTreeReader reader;
 
-boost::regex alias_re("[^.]*Event[^.]*\\.(.+)");
+const boost::regex alias_re("([^.]*)Event[^.]*\\.(.+)");
 
 std::vector<boost::regex> get_branch_regex(const char* fname) {
   std::vector<boost::regex> re;
@@ -57,8 +58,6 @@ std::vector<boost::regex> get_branch_regex(const char* fname) {
     if ((*a)=='\0' || (*a)=='#') continue;
     b = a + line.size() - 1;
     while (std::isspace(*b)) --b;
-    // auto str = "(?:[^.]*\\.)?"+std::string(a,b+1);
-    // TEST(str)
     re.emplace_back("(?:[^.]*\\.)?"+std::string(a,b+1));
   }
   return re;
@@ -105,16 +104,26 @@ int main(int argc, char* argv[]) {
         // add alias
         boost::cmatch match;
         if (boost::regex_match(name,name+std::strlen(name),match,alias_re)) {
-          std::string alias = match[1];
+          std::string alias = match[2];
           if (!alias.empty()) {
             const auto _30 = alias.find("_30");
             if (_30!=std::string::npos) alias.erase(_30,3);
+            if (ivanp::ends_with(match[1],"Truth"))
+              alias = "truth." + alias;
             tout->SetAlias(alias.c_str(),name);
             cout << " -> " << alias;
           }
         }
         cout << endl;
       }
+
+      fout.cd();
+
+      for (auto* key : *file.GetListOfKeys()) {
+        if (ivanp::starts_with(key->GetName(),"CutFlow_"))
+          static_cast<TKey*>(key)->ReadObj()->Clone();
+      }
+
     } else fnames += '\n';
     fnames += argv[i];
 
@@ -126,9 +135,11 @@ int main(int argc, char* argv[]) {
   }
   fout.cd();
 
-  write("Lumi",lumi," ipb");
-  cout << iftty{"\033[36m"} << "Total lumi" << iftty{"\033[0m"}
-       << ": " << lumi << " ipb" << endl;
+  if (lumi) {
+    write("Lumi",lumi," ipb");
+    cout << iftty{"\033[36m"} << "Total lumi" << iftty{"\033[0m"}
+         << ": " << lumi << " ipb" << endl;
+  }
   write("Files",fnames);
 
   fout.Write(0,TObject::kOverwrite);
