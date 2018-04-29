@@ -29,19 +29,21 @@ rpath_script := ldd $(shell root-config --libdir)/libTreePlayer.so \
   | sed -nr '/^(\/usr)?\/lib/!s/^/-Wl,-rpath=/p'
 ROOT_LDLIBS += $(shell $(rpath_script))
 
-CXXFLAGS += $(ROOT_CXXFLAGS)
 LDFLAGS += $(ROOT_LDFLAGS)
-LDLIBS += $(ROOT_LDLIBS) -lTreePlayer
 
-L_mxaod_thin := -lboost_regex
+C_mxaod_thin += $(ROOT_CXXFLAGS)
+L_mxaod_thin := $(ROOT_LDLIBS) -lTreePlayer -lboost_regex
 
-SRCS := $(shell find $(SRC) -type f -name '*$(EXT)')
+SRCS := $(shell find -L $(SRC) -type f -name '*$(EXT)')
 DEPS := $(patsubst $(SRC)/%$(EXT),$(BLD)/%.d,$(SRCS))
 
 GREP_EXES := grep -rl '^ *int \+main *(' $(SRC) --include='*$(EXT)'
 EXES := $(patsubst $(SRC)%$(EXT),$(BIN)%,$(shell $(GREP_EXES)))
 
 all: $(EXES)
+
+bin/mxaod_thin: \
+  $(BLD)/ivanp/program_options/program_options.o
 
 -include $(DEPS)
 

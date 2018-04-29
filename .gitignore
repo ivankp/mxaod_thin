@@ -2,8 +2,12 @@
 
 !.gitignore
 !Makefile
-!src/
-!include/
+!src
+!include
+
+!ivanplib
+
+!run*.sh
 
 **.sw[po]
 **screenlog.*

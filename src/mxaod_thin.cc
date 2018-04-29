@@ -12,9 +12,10 @@
 #include <TKey.h>
 
 #include "any_reader.hh"
-#include "timed_counter.hh"
 #include "color.hh"
-#include "string.hh"
+#include "ivanp/timed_counter.hh"
+#include "ivanp/string.hh"
+#include "ivanp/program_options.hh"
 
 #define TEST(var) \
   std::cout << "\033[36m" #var "\033[0m = " << var << std::endl;
@@ -64,27 +65,35 @@ std::vector<boost::regex> get_branch_regex(const char* fname) {
 }
 
 int main(int argc, char* argv[]) {
-  if (argc<3) {
-    cout << "usage: " << argv[0] << " out.root in.root" << endl;
+  std::vector<const char*> ifnames;
+  const char* ofname = nullptr;
+
+  try {
+    using namespace ivanp::po;
+    if (program_options()
+      (ifnames,'i',"input MxAODs",req(),pos())
+      (ofname,'o',"output file",req())
+      .parse(argc,argv,true)) return 0;
+  } catch (const std::exception& e) {
+    std::cerr << iftty{"\033[31m"} << e.what() << iftty{"\033[0m"} << endl;
     return 1;
   }
 
-  TFile fout(argv[1],"recreate"/*,"mxaod_thin",209*/);
+  TFile fout(ofname,"recreate"/*,"mxaod_thin",209*/);
   if (fout.IsZombie()) return 1;
   tout = new TTree("CollectionTree","");
 
   double lumi = 0; // ipb
-  std::string fnames;
   std::vector<any_reader> vars; // can't move
 
-  for (int i=2; i<argc; ++i) {
-    cout << iftty{"\033[35m"} << argv[i] << iftty{"\033[0m"} << endl;
-    lumi += get_lumi(argv[i]);
+  for (const char* ifname : ifnames) {
+    cout << iftty{"\033[35m"} << ifname << iftty{"\033[0m"} << endl;
+    lumi += get_lumi(ifname);
 
-    TFile file(argv[i]);
+    TFile file(ifname);
     reader.SetTree("CollectionTree",&file);
 
-    if (i==2) {
+    if (ifname == ifnames.front()) {
       std::vector<const TLeaf*> leaves;
       for (const auto& re : get_branch_regex("branches.re")) {
         for (const auto* obj : *reader.GetTree()->GetListOfLeaves()) {
@@ -124,8 +133,7 @@ int main(int argc, char* argv[]) {
           static_cast<TKey*>(key)->ReadObj()->Clone();
       }
 
-    } else fnames += '\n';
-    fnames += argv[i];
+    }
 
     using tc = ivanp::timed_counter<Long64_t>;
     for (tc ent(reader.GetEntries(true)); reader.Next(); ++ent) {
@@ -140,7 +148,7 @@ int main(int argc, char* argv[]) {
     cout << iftty{"\033[36m"} << "Total lumi" << iftty{"\033[0m"}
          << ": " << lumi << " ipb" << endl;
   }
-  write("Files",fnames);
+  write("Files",ivanp::lcat(ifnames,"\n"));
 
   fout.Write(0,TObject::kOverwrite);
 }

@@ -8,8 +8,8 @@
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
 
-#include "enum_traits.hh"
-#include "error.hh"
+#include "ivanp/enum_traits.hh"
+#include "ivanp/error.hh"
 
 #define ROOT_TYPES \
 (Float_t)(Double_t)(Int_t)(UInt_t)(Char_t)(UChar_t)(Long64_t)(ULong64_t)(Short_t)(UShort_t)(Bool_t)
@@ -74,16 +74,6 @@ public:
     }
   }
 
-  void make_branch(TTree* tout) const {
-#define ANY_READER_EACH_OP(r,_,E) \
-  case types::E: \
-    tout->Branch( reader_ptr<E>()->GetBranchName(), value_ptr<E>() ); break;
-
-    switch (type) { ANY_READER_EACH }
-
-#undef ANY_READER_EACH_OP
-  }
-
   void operator*() {
 #define ANY_READER_EACH_OP(r,_,E) \
   case types::E: *value_ptr<E>() = **reader_ptr<E>(); break;
@@ -104,6 +94,16 @@ public:
   }
 
   types get_type() const noexcept { return type; }
+
+  void make_branch(TTree* tout) const {
+#define ANY_READER_EACH_OP(r,_,E) \
+  case types::E: \
+    tout->Branch( reader_ptr<E>()->GetBranchName(), value_ptr<E>() ); break;
+
+    switch (type) { ANY_READER_EACH }
+
+#undef ANY_READER_EACH_OP
+  }
 };
 
 #endif
