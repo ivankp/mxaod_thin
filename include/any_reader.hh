@@ -104,6 +104,9 @@ public:
 
 #undef ANY_READER_EACH_OP
   }
+
+  template <typename T>
+  T get() { return **reader_ptr<T>(); }
 };
 
 #endif

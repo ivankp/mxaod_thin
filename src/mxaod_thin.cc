@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <type_traits>
+#include <algorithm>
 
 #include <boost/regex.hpp>
 
@@ -67,12 +68,14 @@ std::vector<boost::regex> get_branch_regex(const char* fname) {
 int main(int argc, char* argv[]) {
   std::vector<const char*> ifnames;
   const char* ofname = nullptr;
+  bool only_passing = false;
 
   try {
     using namespace ivanp::po;
     if (program_options()
       (ifnames,'i',"input MxAODs",req(),pos())
       (ofname,'o',"output file",req())
+      (only_passing,'p',"store only events with isPassed==true")
       .parse(argc,argv,true)) return 0;
   } catch (const std::exception& e) {
     std::cerr << iftty{"\033[31m"} << e.what() << iftty{"\033[0m"} << endl;
@@ -129,14 +132,25 @@ int main(int argc, char* argv[]) {
       fout.cd();
 
       for (auto* key : *file.GetListOfKeys()) {
-        if (ivanp::starts_with(key->GetName(),"CutFlow_"))
+        if (
+          ivanp::starts_with(key->GetName(),"CutFlow_") &&
+          !ivanp::starts_with(key->GetName()+8,"Run")
+        )
           static_cast<TKey*>(key)->ReadObj()->Clone();
       }
+    }
 
+    any_reader* isPassed = nullptr;
+    if (only_passing) for (auto& var : vars) {
+      if (ivanp::ends_with(var.name(),".isPassed")) {
+        isPassed = &var;
+        break;
+      }
     }
 
     using tc = ivanp::timed_counter<Long64_t>;
     for (tc ent(reader.GetEntries(true)); reader.Next(); ++ent) {
+      if (isPassed && !isPassed->get<Char_t>()) continue;
       for (auto& var : vars) *var;
       tout->Fill();
     }

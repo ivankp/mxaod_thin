@@ -16,5 +16,5 @@ mc16a.aMCnloHwpp_tWH125_yt_plus1.MxAODDetailed.p3404.h019.root
 do
   ./bin/mxaod_thin \
     -i ${dir}/$f \
-    -o ~/space/thin/$(sed -r 's/mc16a\.([^.]+).+/\1/' <<< $f).root
+    -o ~/space/thin/h019/$(sed -r 's/mc16a\.([^.]+).+/\1/' <<< $f).root
 done
