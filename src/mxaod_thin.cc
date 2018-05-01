@@ -67,7 +67,7 @@ std::vector<boost::regex> get_branch_regex(const char* fname) {
 
 int main(int argc, char* argv[]) {
   std::vector<const char*> ifnames;
-  const char* ofname = nullptr;
+  const char *ofname = nullptr, *branches = "branches.re";
   bool only_passing = false;
 
   try {
@@ -75,6 +75,7 @@ int main(int argc, char* argv[]) {
     if (program_options()
       (ifnames,'i',"input MxAODs",req(),pos())
       (ofname,'o',"output file",req())
+      (branches,'b',cat("file with regexs to match branches [",branches,']'))
       (only_passing,'p',"store only events with isPassed==true")
       .parse(argc,argv,true)) return 0;
   } catch (const std::exception& e) {
@@ -98,7 +99,7 @@ int main(int argc, char* argv[]) {
 
     if (ifname == ifnames.front()) {
       std::vector<const TLeaf*> leaves;
-      for (const auto& re : get_branch_regex("branches.re")) {
+      for (const auto& re : get_branch_regex(branches)) {
         for (const auto* obj : *reader.GetTree()->GetListOfLeaves()) {
           const TLeaf* leaf = static_cast<const TLeaf*>(obj);
           const char* name = leaf->GetName();
