@@ -8,6 +8,7 @@
 !ivanplib
 
 !run*.sh
+!branches.re
 
 **.sw[po]
 **screenlog.*
