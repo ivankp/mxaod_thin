@@ -9,9 +9,8 @@ mc16a.PowhegPy8_WmH125J.MxAODDetailed.p3472.h021.root \
 mc16a.PowhegPy8_WpH125J.MxAODDetailed.p3472.h021.root \
 mc16a.PowhegPy8_ZH125J.MxAODDetailed.p3472.h021.root \
 mc16a.PowhegPy8_ggZH125.MxAODDetailed.p3472.h021.root \
-mc16a.aMCnloPy8_ttH125.MxAODDetailed.p3472.h021.root \
-mc16a.aMCnloPy8_bbH125_yb2.MxAODDetailed.p3472.h021.root \
-mc16a.aMCnloPy8_bbH125_ybyt.MxAODDetailed.p3472.h021.root \
+mc16a.PowhegPy8_ttH125.MxAODDetailed.p3525.h021.root \
+mc16a.PowhegPy8_bbH125.MxAODDetailed.p3524.h021.root \
 mc16a.aMCnloHwpp_tWH125_yt_plus1.MxAODDetailed.p3472.h021.root
 do
   ./bin/mxaod_thin \

@@ -106,7 +106,17 @@ public:
   }
 
   template <typename T>
-  T get() { return **reader_ptr<T>(); }
+  inline T get() { return **reader_ptr<T>(); }
+
+  template <typename F>
+  friend inline auto operator%(any_reader& reader, F&& f) {
+#define ANY_READER_EACH_OP(r,_,E) \
+  case types::E: return f(*reader.value_ptr<E>());
+
+    switch (reader.type) { ANY_READER_EACH }
+
+#undef ANY_READER_EACH_OP
+  }
 };
 
 #endif

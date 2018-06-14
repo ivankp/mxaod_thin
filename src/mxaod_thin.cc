@@ -12,11 +12,12 @@
 #include <TTree.h>
 #include <TKey.h>
 
-#include "any_reader.hh"
-#include "color.hh"
 #include "ivanp/timed_counter.hh"
 #include "ivanp/string.hh"
 #include "ivanp/program_options.hh"
+
+#include "any_reader.hh"
+#include "color.hh"
 
 #define TEST(var) \
   std::cout << "\033[36m" #var "\033[0m = " << var << std::endl;
@@ -24,11 +25,6 @@
 using std::cout;
 using std::endl;
 using ivanp::cat;
-
-// namespace ivanp {
-// template <>
-// inline size_t size(const TObjArray& c) { return c.GetSize(); }
-// }
 
 template <typename... T>
 inline void write(const char* name, T&&... x) {

@@ -1,9 +1,8 @@
 SHELL := bash
 CXX := g++
-STD := -std=c++14
-CPPFLAGS := $(STD) -Iinclude
-CXXFLAGS := $(STD) -Wall -O3 -Iinclude -fmax-errors=3
-# CXXFLAGS := $(STD) -Wall -g -Iinclude -fmax-errors=3
+CPPFLAGS := -std=c++14 -Iinclude
+CXXFLAGS := -Wall -O3 -fmax-errors=3 $(CPPFLAGS)
+# CXXFLAGS := -Wall -g -fmax-errors=3 $(CPPFLAGS)
 LDFLAGS :=
 LDLIBS :=
 
@@ -34,6 +33,9 @@ LDFLAGS += $(ROOT_LDFLAGS)
 C_mxaod_thin += $(ROOT_CXXFLAGS)
 L_mxaod_thin := $(ROOT_LDLIBS) -lTreePlayer -lboost_regex
 
+C_merge_mc += $(ROOT_CXXFLAGS)
+L_merge_mc := $(ROOT_LDLIBS) -lTreePlayer
+
 SRCS := $(shell find -L $(SRC) -type f -name '*$(EXT)')
 DEPS := $(patsubst $(SRC)/%$(EXT),$(BLD)/%.d,$(SRCS))
 
@@ -42,7 +44,7 @@ EXES := $(patsubst $(SRC)%$(EXT),$(BIN)%,$(shell $(GREP_EXES)))
 
 all: $(EXES)
 
-bin/mxaod_thin: \
+$(EXES): \
   $(BLD)/ivanp/program_options/program_options.o
 
 -include $(DEPS)
