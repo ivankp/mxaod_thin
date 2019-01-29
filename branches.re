@@ -11,7 +11,7 @@ cutFlow
 mcChannelNumber
 
 m_yy
-pT_yy
+pT_y[y12]
 yAbs_yy
 cosTS_yy
 pTt_yy
@@ -31,5 +31,5 @@ D(y|phi)_yy_jj_30
 
 N_lep_15
 
-catXS_(VBF|MET|lepton|mu|el)
+.*[cC]atXS_.*
 
