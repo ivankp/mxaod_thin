@@ -36,6 +36,9 @@ L_mxaod_thin := $(ROOT_LDLIBS) -lTreePlayer -lboost_regex
 C_merge_mc += $(ROOT_CXXFLAGS)
 L_merge_mc := $(ROOT_LDLIBS) -lTreePlayer
 
+C_merge_mc_2 += $(ROOT_CXXFLAGS)
+L_merge_mc_2 := $(ROOT_LDLIBS) -lTreePlayer
+
 SRCS := $(shell find -L $(SRC) -type f -name '*$(EXT)')
 DEPS := $(patsubst $(SRC)/%$(EXT),$(BLD)/%.d,$(SRCS))
 

@@ -28,7 +28,7 @@ for name in $(
 do
   echo ${name%.root}
   # echo \
-  ./bin/merge_mc \
+  ./bin/merge_mc_2 \
   $(sed -r "s,([^ ]*)(:[^ ]*),$dir/\1/$name\2,g" <<< ${runs[@]}) \
   -o $out/$name
 done

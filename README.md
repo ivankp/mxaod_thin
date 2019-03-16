@@ -1,1 +1,1 @@
-Note: run scripts with `-p` to apply `isPassed`.
+Note: run scripts with `--mom` to write 4-momenta.
